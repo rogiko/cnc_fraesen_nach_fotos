@@ -1,1 +1,95 @@
+/*
+Ein bild laden und die Farbe des Pxels untersuchen
+ aus der Position  x und y Werte generieren
+ die Farbe für einen z Wert benutzen
+ 
+ Das Bild hat eine auflösung von 800 * 800 Pixel
+ wäre als 800 * 800 mm gross
+ 
+ weis = -1 und schwarz = -16777216
+ */
 
+// eine Variable vom Typ PImage für das Bild
+PImage img;
+// eine Variable vom Typ Table für den NC code als csv Datei
+Table ncCode;
+
+// variable zum testen ob sich die Farbe veränder
+int weis = -1;
+int schwarz = -16777216;
+
+// die position des Fräsers speichern
+// eingetaucht oder nicht eingetaucht
+boolean tauchen = false;
+
+void setup() {
+  size(800, 800);
+  img = loadImage("willem_dafoe_03.jpg");
+
+  // eine neues Objekt vom Type Table für den NC Code
+  ncCode = new Table();
+  // nur eine Spalte für eine Zeile Code erstellen
+  ncCode.addColumn("Satz");
+
+  noLoop();
+}
+
+void draw() {
+  // Die Pixel zugänig machen
+  loadPixels();
+  img.loadPixels();
+  // Die Position der Pixel bestimmen
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int loc = x + y * width;
+
+      // die Farbe des pxels an der pos x y
+      color f = img.get(x, y);
+
+      // Farbe testen und aus den Reihen G Code schreiben
+      // welche farbe hat der Pixel
+      if (f == schwarz && tauchen == false) {
+        // ein Zeilen Objeckt erstellen
+        TableRow zeile1 = ncCode.addRow();
+        TableRow zeile2 = ncCode.addRow();
+        // Die Kommastellen bearbeiten
+       
+        String posG0 = "G0 X" + dreiStellen(x*0.1) + " Y" + dreiStellen(y*0.1);
+        // Die erste zeile schreiben
+        zeile1.setString("Satz", posG0);
+        // Die Zweite Zeile Schreiben Fräser taucht ein
+        zeile2.setString("Satz", "G1 Z-0.1 F1000");
+        tauchen = true;
+        // die zwei Zeilen Object wiedr löschen
+        zeile1 = null;
+        zeile2 = null;
+      }
+      if ( f == weis && tauchen == true) {
+        // ein Zeilen Objeckt erstellen
+        TableRow zeile1 = ncCode.addRow();
+        TableRow zeile2 = ncCode.addRow();
+        String fahren = "X" + dreiStellen(x*0.1) + " Y" + dreiStellen(y*0.1);
+        // Die erste zeile schreiben
+        zeile1.setString("Satz", fahren);
+        // Die zweite Zeile schreiben der Fräser taucht auf
+        zeile2.setString("Satz", "G0 Z2");
+        tauchen = false;
+        // die Zeilen Object wieder löschen
+        zeile1 = null;
+        zeile2 = null;
+      }
+      pixels[loc] = color(f);
+    }
+  }
+  // Den ncCode speichern
+  saveTable(ncCode, "data/nc_nach_Bild.csv");
+  updatePixels();
+  System.out.println("ende");
+}
+
+// Methode die Nachkommastellen auf 3 zu begerenzen
+float dreiStellen(float n){
+  float nn = n*1000;
+  int nnn = (int)nn;
+  return  nnn/1000F;
+}
